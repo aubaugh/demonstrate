@@ -1,0 +1,15 @@
+[package]
+name = "demonstrate"
+description = "A testing library"
+version = "0.1.0"
+authors = ["Austin Baugh <austinsbaugh@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+proc-macro2 = "1.0.19"
+quote = "1.0.7"
+syn = { version = "1.0.35", features = [ "full" ] }
+
+[lib]
+proc_macro = true
