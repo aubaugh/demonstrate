@@ -12,13 +12,27 @@ mod keyword {
     custom_keyword!(test);
 }
 
-pub(crate) enum ScopeBlock {
+pub(crate) struct Root(Vec<Block>);
+
+impl Parse for Root {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut blocks = Vec::new();
+
+        while !input.is_empty() {
+            blocks.push(input.parse::<Block>()?);
+        }
+
+        Ok(Root(blocks))
+    }
+}
+
+pub(crate) enum DescribeBlock {
     Regular(Block),
     Before(Vec<Stmt>),
     After(Vec<Stmt>),
 }
 
-impl Parse for ScopeBlock {
+impl Parse for DescribeBlock {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
         let content;
@@ -27,73 +41,44 @@ impl Parse for ScopeBlock {
             input.parse::<keyword::before>()?;
             braced!(content in input);
 
-            Ok(ScopeBlock::Before(content.call(syn::Block::parse_within)?))
+            Ok(DescribeBlock::Before(content.call(syn::Block::parse_within)?))
         } else if lookahead.peek(keyword::after) {
             input.parse::<keyword::after>()?;
             braced!(content in input);
 
-            Ok(ScopeBlock::After(content.call(syn::Block::parse_within)?))
+            Ok(DescribeBlock::After(content.call(syn::Block::parse_within)?))
         } else {
-            Ok(ScopeBlock::Regular(input.parse::<Block>()?))
+            Ok(DescribeBlock::Regular(input.parse::<Block>()?))
         }
     }
 }
 
 #[derive(Clone)]
-pub(crate) struct Scope {
+pub(crate) struct Describe {
+    pub(crate) properties: BlockProperties,
     pub(crate) before: Vec<Stmt>,
     pub(crate) after: Vec<Stmt>,
     pub(crate) blocks: Vec<Block>,
 }
 
-impl Parse for Scope {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut before = Vec::new();
-        let mut after = Vec::new();
-        let mut blocks = Vec::new();
-
-        while !input.is_empty() {
-            let block = input.parse::<ScopeBlock>()?;
-            match block {
-                ScopeBlock::Before(block) => {
-                    if before.is_empty() {
-                        before = block;
-                    } else {
-                        return Err(input.error("Only one `before` statement per scope"));
-                    }
-                }
-                ScopeBlock::After(block) => {
-                    if after.is_empty() {
-                        after = block;
-                    } else {
-                        return Err(input.error("Only one `after` statement per scope"));
-                    }
-                }
-                ScopeBlock::Regular(block) => blocks.push(block),
-            }
-        }
-
-        Ok(Self {
-            before,
-            after,
-            blocks,
-        })
-    }
+#[derive(Clone)]
+pub(crate) enum Block {
+    Describe(Describe),
+    Test(Test),
 }
 
 #[derive(Clone)]
-pub(crate) enum BlockType {
-    Describe(Scope),
-    Test(Vec<Stmt>),
-}
-
-#[derive(Clone)]
-pub(crate) struct Block {
+pub(crate) struct BlockProperties {
     pub(crate) attributes: Vec<Attribute>,
     pub(crate) is_async: bool,
     pub(crate) ident: Ident,
     pub(crate) return_type: Option<Type>,
-    pub(crate) content: BlockType,
+}
+
+#[derive(Clone)]
+pub(crate) struct Test {
+    pub(crate) properties: BlockProperties,
+    pub(crate) content: Vec<Stmt>,
 }
 
 impl Parse for Block {
@@ -124,22 +109,53 @@ impl Parse for Block {
         let ident = input.parse::<Ident>()?;
 
         // TODO: parse return type
-
-        let content;
-        braced!(content in input);
-        let mut parsed_content;
-        if is_test {
-            parsed_content = BlockType::Test(content.call(syn::Block::parse_within)?);
-        } else {
-            parsed_content = BlockType::Describe(content.parse::<Scope>()?);
-        }
-
-        Ok(Block {
+        
+        let properties = BlockProperties {
             attributes,
             is_async,
             ident,
             return_type: None,
-            content: parsed_content,
-        })
+        };
+
+        let content;
+        braced!(content in input);
+        if is_test {
+            Ok(Block::Test(Test {
+                properties,
+                content: content.call(syn::Block::parse_within)?
+            }))
+        } else {
+            let mut before = Vec::new();
+            let mut after = Vec::new();
+            let mut blocks = Vec::new();
+
+            while !content.is_empty() {
+                let block = content.parse::<DescribeBlock>()?;
+                match block {
+                    DescribeBlock::Before(block) => {
+                        if before.is_empty() {
+                            before = block;
+                        } else {
+                            return Err(content.error("Only one `before` statement per describe/context scope"));
+                        }
+                    }
+                    DescribeBlock::After(block) => {
+                        if after.is_empty() {
+                            after = block;
+                        } else {
+                            return Err(content.error("Only one `after` statement per describe/context scope"));
+                        }
+                    }
+                    DescribeBlock::Regular(block) => blocks.push(block),
+                }
+            }
+
+            Ok(Block::Describe(Describe {
+                properties,
+                before,
+                after,
+                blocks,
+            }))
+        }
     }
 }

@@ -1,64 +1,62 @@
-use crate::block::{Root, BlockType, Block};
+use crate::block::{Root, BlockProperties, Block};
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub(crate) trait Generate {
-    fn generate(self, parent: Option<&Block>) -> TokenStream;
+    fn generate(self, parent: Option<&Describe>) -> TokenStream;
 }
 
 impl Generate for Root {
-    fn generate(mut self, parent: Option<&Block>) -> TokenStream {
-        let blocks = self
-            .blocks
+    fn generate(self, _parent: Option<&Describe>) -> TokenStream {
+        let Self(blocks) = self;
+        let generated_blocks = blocks
             .iter()
-            .map(|block| block.clone().generate(parent))
+            .map(|block| block.clone().generate(None))
             .collect::<Vec<TokenStream>>();
 
         quote!(
-            #(#blocks)*
+            #(#generated_blocks)*
         )
     }
 }
 
 impl Generate for Block {
-    fn generate(mut self, parent: Option<&Block>) -> TokenStream {
+    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
         if let Some(ref parent) = parent {
-            self.attributes = parent
+            self.properties.attributes = parent
+                .properties
                 .attributes
                 .iter()
-                .chain(self.attributes.iter())
+                .chain(self.properties.attributes.iter())
                 .cloned()
                 .collect();
 
-            if parent.is_async {
-                self.is_async = true;
+            if parent.properties.is_async {
+                self.properties.is_async = true;
             }
 
-            if let Some(return_type) = parent.return_type {
-                self.return_type = Some(return_type);
+            if let Some(return_type) = parent.properties.return_type {
+                self.properties.return_type = Some(return_type);
             }
         }
 
-        match self.content {
-            BlockType::Test(mut content) => {
-                let Block {
+        match self {
+            Block::Test(mut content) => {
+                let BlockProperties {
                     attributes,
                     is_async,
                     ident,
                     return_type,
-                    content: _,
-                } = self;
+                } = self.properties;
 
                 if let Some(ref parent) = parent {
-                    if let BlockType::Describe(scope) = parent.content {
-                        content = scope
-                            .before
-                            .iter()
-                            .chain(content.iter())
-                            .chain(scope.after.iter())
-                            .cloned()
-                            .collect();
-                    }
+                    content = parent
+                        .before
+                        .iter()
+                        .chain(content.iter())
+                        .chain(parent.after.iter())
+                        .cloned()
+                        .collect();
                 }
 
                 if is_async {
@@ -78,28 +76,30 @@ impl Generate for Block {
                     )
                 }
             },
-            BlockType::Describe(mut scope) => {
+            Block::Describe(mut describe) => {
                 if let Some(ref parent) = parent {
-                    if let BlockType::Describe(parent_scope) = parent.content {
-                        scope.before = parent_scope
-                            .before
-                            .iter()
-                            .chain(scope.before.iter())
-                            .cloned()
-                            .collect();
-                        scope.after.extend(parent_scope.after.clone());
-                    }
+                    describe.before = parent
+                        .before
+                        .iter()
+                        .chain(describe.before.iter())
+                        .cloned()
+                        .collect();
+                    describe.after.extend(parent.after.clone());
                 }
 
-                let ident = self.ident;
-                let scope_blocks = scope.generate(Some(&self));
+                let describe_blocks = describe.blocks
+                    .iter()
+                    .map(|block| block.clone().generate(Some(&self)))
+                    .collect::<Vec<TokenStream>>();
+
+                let ident = self.properties.ident;
 
                 quote!(
                     #[cfg(test)]
                     mod #ident {
                         use super::*;
 
-                        #scope_blocks
+                        #(#describe_blocks)*
                     }
                 )
             }
