@@ -83,9 +83,9 @@ pub(crate) struct Test {
 
 impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
-        let lookahead = input.lookahead1();
-
         let attributes = input.call(Attribute::parse_outer)?;
+
+        let lookahead = input.lookahead1();
 
         let mut is_async = false;
         if lookahead.peek(Token![async]) {

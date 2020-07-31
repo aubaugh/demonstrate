@@ -7,12 +7,16 @@ fn is_4() -> u8 {
 demonstrate! {
     describe module {
         before {
-            let value1 = 4;
+            let value1 = 3;
         }
 
-        describe nested {
-            it works {
+        #[should_panic]
+        describe fails {
+            it once {
                 assert!(value1 == is_4())
+            }
+            it twice {
+                assert!(false)
             }
         }
     }
