@@ -34,16 +34,12 @@ pub(crate) enum DescribeBlock {
 
 impl Parse for DescribeBlock {
     fn parse(input: ParseStream) -> Result<Self> {
-        let lookahead = input.lookahead1();
         let content;
-
-        if lookahead.peek(keyword::before) {
-            input.parse::<keyword::before>()?;
+        if input.parse::<Option<keyword::before>>()?.is_some() {
             braced!(content in input);
 
             Ok(DescribeBlock::Before(content.call(syn::Block::parse_within)?))
-        } else if lookahead.peek(keyword::after) {
-            input.parse::<keyword::after>()?;
+        } else if input.parse::<Option<keyword::after>>()?.is_some() {
             braced!(content in input);
 
             Ok(DescribeBlock::After(content.call(syn::Block::parse_within)?))
@@ -85,26 +81,17 @@ impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
         let attributes = input.call(Attribute::parse_outer)?;
 
-        let lookahead = input.lookahead1();
+        let is_async = input.parse::<Option<Token![async]>>()?.is_some();
 
-        let mut is_async = false;
-        if lookahead.peek(Token![async]) {
-            is_async = true;
-            input.parse::<Token![async]>()?;
-        }
-
-        let mut is_test = false;
-        if lookahead.peek(keyword::describe) {
-            input.parse::<keyword::describe>()?;
-        } else if lookahead.peek(keyword::context) {
-            input.parse::<keyword::context>()?;
-        } else if lookahead.peek(keyword::it) {
-            input.parse::<keyword::it>()?;
-            is_test = true;
-        } else if lookahead.peek(keyword::test) {
-            input.parse::<keyword::test>()?;
-            is_test = true;
-        }
+        let is_test = if input.parse::<Option<keyword::test>>()?.is_some()
+            || input.parse::<Option<keyword::it>>()?.is_some() {
+                true
+        } else if input.parse::<Option<keyword::describe>>()?.is_some()
+            || input.parse::<Option<keyword::context>>()?.is_some() {
+                false
+        } else {
+            return Err(input.error("Unknown block type"))
+        };
 
         let ident = input.parse::<Ident>()?;
 

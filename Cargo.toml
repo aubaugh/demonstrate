@@ -6,6 +6,10 @@ authors = ["Austin Baugh <austinsbaugh@gmail.com>"]
 edition = "2018"
 license = "MIT"
 
+[dev-dependencies]
+async-attributes = "1.1.1"
+async-std = "1.6.2"
+
 [dependencies]
 proc-macro2 = "1.0.19"
 quote = "1.0.7"

@@ -14,9 +14,7 @@ impl Generate for Root {
             .map(|block| block.clone().generate(None))
             .collect::<Vec<TokenStream>>();
 
-        quote!(
-            #(#generated_blocks)*
-        )
+        quote!(#(#generated_blocks)*)
     }
 }
 
@@ -84,8 +82,8 @@ impl Generate for Test {
             )
         } else {
             quote!(
-                #(#attributes)*
                 #[test]
+                #(#attributes)*
                 fn #ident() {
                     #(#content)*
                 }
