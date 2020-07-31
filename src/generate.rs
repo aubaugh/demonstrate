@@ -1,4 +1,4 @@
-use crate::block::{Root, BlockProperties, Block};
+use crate::block::{Root, Block, Test, Describe, BlockProperties};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -20,89 +20,105 @@ impl Generate for Root {
     }
 }
 
-impl Generate for Block {
+impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
+        inherit_props(&mut self.properties, parent);
+
         if let Some(ref parent) = parent {
-            self.properties.attributes = parent
-                .properties
-                .attributes
+            self.before = parent
+                .before
                 .iter()
-                .chain(self.properties.attributes.iter())
+                .chain(self.before.iter())
                 .cloned()
                 .collect();
-
-            if parent.properties.is_async {
-                self.properties.is_async = true;
-            }
-
-            if let Some(return_type) = parent.properties.return_type {
-                self.properties.return_type = Some(return_type);
-            }
+            self.after.extend(parent.after.clone());
         }
 
-        match self {
-            Block::Test(mut content) => {
-                let BlockProperties {
-                    attributes,
-                    is_async,
-                    ident,
-                    return_type,
-                } = self.properties;
+        let describe_blocks = self.blocks
+            .iter()
+            .map(|block| block.clone().generate(Some(&self)))
+            .collect::<Vec<TokenStream>>();
 
-                if let Some(ref parent) = parent {
-                    content = parent
-                        .before
-                        .iter()
-                        .chain(content.iter())
-                        .chain(parent.after.iter())
-                        .cloned()
-                        .collect();
-                }
+        let ident = self.properties.ident;
 
-                if is_async {
-                    quote!(
-                        #(#attributes)*
-                        async fn #ident() {
-                            #(#content)*
-                        }
-                    )
-                } else {
-                    quote!(
-                        #(#attributes)*
-                        #[test]
-                        fn #ident() {
-                            #(#content)*
-                        }
-                    )
-                }
-            },
-            Block::Describe(mut describe) => {
-                if let Some(ref parent) = parent {
-                    describe.before = parent
-                        .before
-                        .iter()
-                        .chain(describe.before.iter())
-                        .cloned()
-                        .collect();
-                    describe.after.extend(parent.after.clone());
-                }
+        quote!(
+            #[cfg(test)]
+            mod #ident {
+                use super::*;
 
-                let describe_blocks = describe.blocks
-                    .iter()
-                    .map(|block| block.clone().generate(Some(&self)))
-                    .collect::<Vec<TokenStream>>();
-
-                let ident = self.properties.ident;
-
-                quote!(
-                    #[cfg(test)]
-                    mod #ident {
-                        use super::*;
-
-                        #(#describe_blocks)*
-                    }
-                )
+                #(#describe_blocks)*
             }
+        )
+    }
+}
+
+impl Generate for Test {
+    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
+        inherit_props(&mut self.properties, parent);
+
+        let BlockProperties {
+            attributes,
+            is_async,
+            ident,
+            return_type,
+        } = self.properties;
+
+        let content = if let Some(ref parent) = parent {
+            parent
+                .before
+                .iter()
+                .chain(self.content.iter())
+                .chain(parent.after.iter())
+                .cloned()
+                .collect()
+        } else {
+            self.content
+        };
+
+        if is_async {
+            quote!(
+                #(#attributes)*
+                async fn #ident() {
+                    #(#content)*
+                }
+            )
+        } else {
+            quote!(
+                #(#attributes)*
+                #[test]
+                fn #ident() {
+                    #(#content)*
+                }
+            )
+        }
+    }
+}
+
+fn inherit_props(properties: &mut BlockProperties, parent: Option<&Describe>) {
+    if let Some(ref parent) = parent {
+        properties.attributes = parent
+            .properties
+            .attributes
+            .iter()
+            .chain(properties.attributes.iter())
+            .cloned()
+            .collect();
+
+        if parent.properties.is_async {
+            properties.is_async = true;
+        }
+
+        if let Some(ref return_type) = &parent.properties.return_type {
+            properties.return_type = Some(return_type.clone());
+        }
+    }
+}
+
+impl Generate for Block {
+    fn generate(self, parent: Option<&Describe>) -> TokenStream {
+        match self {
+            Block::Test(test) => test.generate(parent),
+            Block::Describe(describe) => describe.generate(parent),
         }
     }
 }
