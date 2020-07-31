@@ -1,4 +1,4 @@
-use crate::block::{Root, Block, Test, Describe, BlockProperties};
+use crate::block::{Block, BlockProperties, Describe, Root, Test};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -32,7 +32,8 @@ impl Generate for Describe {
             self.after.extend(parent.after.clone());
         }
 
-        let describe_blocks = self.blocks
+        let describe_blocks = self
+            .blocks
             .iter()
             .map(|block| block.clone().generate(Some(&self)))
             .collect::<Vec<TokenStream>>();

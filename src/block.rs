@@ -38,11 +38,15 @@ impl Parse for DescribeBlock {
         if input.parse::<Option<keyword::before>>()?.is_some() {
             braced!(content in input);
 
-            Ok(DescribeBlock::Before(content.call(syn::Block::parse_within)?))
+            Ok(DescribeBlock::Before(
+                content.call(syn::Block::parse_within)?,
+            ))
         } else if input.parse::<Option<keyword::after>>()?.is_some() {
             braced!(content in input);
 
-            Ok(DescribeBlock::After(content.call(syn::Block::parse_within)?))
+            Ok(DescribeBlock::After(
+                content.call(syn::Block::parse_within)?,
+            ))
         } else {
             Ok(DescribeBlock::Regular(input.parse::<Block>()?))
         }
@@ -84,19 +88,21 @@ impl Parse for Block {
         let is_async = input.parse::<Option<Token![async]>>()?.is_some();
 
         let is_test = if input.parse::<Option<keyword::test>>()?.is_some()
-            || input.parse::<Option<keyword::it>>()?.is_some() {
-                true
+            || input.parse::<Option<keyword::it>>()?.is_some()
+        {
+            true
         } else if input.parse::<Option<keyword::describe>>()?.is_some()
-            || input.parse::<Option<keyword::context>>()?.is_some() {
-                false
+            || input.parse::<Option<keyword::context>>()?.is_some()
+        {
+            false
         } else {
-            return Err(input.error("Unknown block type"))
+            return Err(input.error("Unknown block type"));
         };
 
         let ident = input.parse::<Ident>()?;
 
         // TODO: parse return type
-        
+
         let properties = BlockProperties {
             attributes,
             is_async,
@@ -109,7 +115,7 @@ impl Parse for Block {
         if is_test {
             Ok(Block::Test(Test {
                 properties,
-                content: content.call(syn::Block::parse_within)?
+                content: content.call(syn::Block::parse_within)?,
             }))
         } else {
             let mut before = Vec::new();
@@ -123,14 +129,16 @@ impl Parse for Block {
                         if before.is_empty() {
                             before = block;
                         } else {
-                            return Err(content.error("Only one `before` statement per describe/context scope"));
+                            return Err(content
+                                .error("Only one `before` statement per describe/context scope"));
                         }
                     }
                     DescribeBlock::After(block) => {
                         if after.is_empty() {
                             after = block;
                         } else {
-                            return Err(content.error("Only one `after` statement per describe/context scope"));
+                            return Err(content
+                                .error("Only one `after` statement per describe/context scope"));
                         }
                     }
                     DescribeBlock::Regular(block) => blocks.push(block),
