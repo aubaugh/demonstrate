@@ -26,7 +26,7 @@ impl Parse for Root {
     }
 }
 
-pub(crate) enum DescribeBlock {
+enum DescribeBlock {
     Regular(Block),
     Before(Vec<Stmt>),
     After(Vec<Stmt>),
@@ -101,13 +101,17 @@ impl Parse for Block {
 
         let ident = input.parse::<Ident>()?;
 
-        // TODO: parse return type
+        let return_type = if input.parse::<Option<Token![->]>>()?.is_some() {
+            Some(input.parse::<Type>()?)
+        } else {
+            None
+        };
 
         let properties = BlockProperties {
             attributes,
             is_async,
             ident,
-            return_type: None,
+            return_type,
         };
 
         let content;
