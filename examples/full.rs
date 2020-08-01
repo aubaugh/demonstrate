@@ -5,15 +5,39 @@ fn is_4() -> u8 {
 }
 
 demonstrate! {
-    before {
-        let value1 = 4;
+    it is_root {
+        assert!(true)
     }
 
     describe module {
-        describe nested {
-            it works {
-                assert!(value1 == is_4())
+        before {
+            let four = 4;
+        }
+
+        test is_returnable -> Result<(), &'static str> {
+            if is_4() == four {
+                Ok(())
+            } else {
+                Err("It isn't 4! :o")
             }
+        }
+
+        #[async_attributes::test]
+        async context asynchronous {
+            before {
+                let add_task = async_std::task::spawn(async {
+                    1 + 1 + 1 + 1
+                });
+            }
+
+            it awaits {
+                assert_eq!(four, add_task.await)
+            }
+        }
+
+        #[should_panic]
+        it can_fail {
+            assert!(four != 4)
         }
     }
 }
