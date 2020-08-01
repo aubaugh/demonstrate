@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout sources 
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
       
     - name: Run test example
       run: cargo test --example full
@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Checkout sources 
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
       
     - name: Rust toolchain
       uses: actions-rs/toolchain@v1
