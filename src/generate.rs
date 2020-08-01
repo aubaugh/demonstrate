@@ -9,12 +9,11 @@ pub(crate) trait Generate {
 impl Generate for Root {
     fn generate(self, _parent: Option<&Describe>) -> TokenStream {
         let Self(blocks) = self;
-        let generated_blocks = blocks
+
+        blocks
             .iter()
             .map(|block| block.clone().generate(None))
-            .collect::<Vec<TokenStream>>();
-
-        quote!(#(#generated_blocks)*)
+            .collect::<TokenStream>()
     }
 }
 
@@ -36,7 +35,7 @@ impl Generate for Describe {
             .blocks
             .iter()
             .map(|block| block.clone().generate(Some(&self)))
-            .collect::<Vec<TokenStream>>();
+            .collect::<TokenStream>();
 
         let ident = self.properties.ident;
 
@@ -45,7 +44,7 @@ impl Generate for Describe {
             mod #ident {
                 use super::*;
 
-                #(#describe_blocks)*
+                #describe_blocks
             }
         )
     }
@@ -74,18 +73,29 @@ impl Generate for Test {
             self.content
         };
 
-        if is_async {
+        let (attr_tokens, async_token) = if is_async {
+            (quote!(#(#attributes)*), Some(quote!(async)))
+        } else {
+            (
+                quote!(
+                    #[test]
+                    #(#attributes)*
+                ),
+                None,
+            )
+        };
+
+        if let Some(return_type) = return_type {
             quote!(
-                #(#attributes)*
-                async fn #ident() {
+                #attr_tokens
+                #async_token fn #ident() -> #return_type {
                     #(#content)*
                 }
             )
         } else {
             quote!(
-                #[test]
-                #(#attributes)*
-                fn #ident() {
+                #attr_tokens
+                #async_token fn #ident() {
                     #(#content)*
                 }
             )
