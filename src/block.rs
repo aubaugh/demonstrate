@@ -55,16 +55,18 @@ impl Parse for DescribeBlock {
 
 #[derive(Clone)]
 pub(crate) struct Describe {
-    pub(crate) properties: BlockProperties,
     pub(crate) before: Vec<Stmt>,
     pub(crate) after: Vec<Stmt>,
     pub(crate) blocks: Vec<Block>,
 }
 
 #[derive(Clone)]
-pub(crate) enum Block {
+pub(crate) struct Test(Vec<Stmt>);
+
+#[derive(Clone)]
+pub(crate) enum BlockType {
     Describe(Describe),
-    Test(Test),
+    Test(Vec<Stmt>),
 }
 
 #[derive(Clone)]
@@ -76,9 +78,9 @@ pub(crate) struct BlockProperties {
 }
 
 #[derive(Clone)]
-pub(crate) struct Test {
+pub(crate) struct Block {
     pub(crate) properties: BlockProperties,
-    pub(crate) content: Vec<Stmt>,
+    pub(crate) content: Vec<BlockType>,
 }
 
 impl Parse for Block {

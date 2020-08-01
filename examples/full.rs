@@ -14,11 +14,11 @@ demonstrate! {
             let four = 4;
         }
 
-        test is_returnable -> Result<(), String> {
+        test is_returnable -> Result<(), &'static str> {
             if is_4() == four {
                 Ok(())
             } else {
-                Err("It isn't 4 :o".to_string())
+                Err("It isn't 4! :o")
             }
         }
 
