@@ -12,7 +12,13 @@ impl Generate for Root {
 
         blocks
             .iter()
-            .map(|block| block.clone().generate(None))
+            .map(|block| {
+                let root_block = block.clone().generate(None);
+                quote!(
+                    #[cfg(test)]
+                    #root_block
+                )
+            })
             .collect::<TokenStream>()
     }
 }
@@ -30,12 +36,6 @@ impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
         self.properties.inherit(parent);
 
-        let uses = self
-            .uses
-            .iter()
-            .map(|path| quote!(use #path;))
-            .collect::<TokenStream>();
-
         if let Some(ref parent) = parent {
             self.before = BasicBlock(
                 parent
@@ -49,7 +49,13 @@ impl Generate for Describe {
             self.after.0.extend(parent.after.0.clone());
         }
 
-        let describe_blocks = self
+        let uses = self
+            .uses
+            .iter()
+            .map(|path| quote!(use #path;))
+            .collect::<TokenStream>();
+
+        let blocks = self
             .blocks
             .iter()
             .map(|block| block.clone().generate(Some(&self)))
@@ -58,11 +64,10 @@ impl Generate for Describe {
         let ident = self.properties.ident;
 
         quote!(
-            #[cfg(test)]
             mod #ident {
                 #uses
 
-                #describe_blocks
+                #blocks
             }
         )
     }
