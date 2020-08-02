@@ -28,7 +28,7 @@ mod generate;
 /// }
 /// ```
 ///
-/// <br />
+/// <hr />
 ///
 /// `it`/`test` blocks define a unit test.
 /// ```
@@ -52,7 +52,7 @@ mod generate;
 /// }
 /// ```
 ///
-/// <br />
+/// <hr />
 ///
 /// `before` and `after` blocks prevent shared starting and ending sequences of code from being
 /// written for each test within a the `describe`/`context` block it is contained in and each
@@ -112,7 +112,7 @@ mod generate;
 /// }
 /// ```
 ///
-/// <br />
+/// <hr />
 ///
 /// Outer attributes, returning result types, and async tokens are all valid for `it`/`test` blocks, and can
 /// be applied to `describe`/`context` blocks as well which will affect all descendant tests.
