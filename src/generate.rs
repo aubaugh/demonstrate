@@ -1,4 +1,4 @@
-use crate::block::{Block, BlockProperties, Describe, Root, Test};
+use crate::block::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -19,21 +19,25 @@ impl Generate for Root {
 
 impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        inherit_props(&mut self.properties, parent);
+        self.properties.inherit(parent);
 
-        let uses = self.uses
+        let uses = self
+            .uses
             .iter()
             .map(|path| quote!(use #path;))
             .collect::<TokenStream>();
 
         if let Some(ref parent) = parent {
-            self.before = parent
-                .before
-                .iter()
-                .chain(self.before.iter())
-                .cloned()
-                .collect();
-            self.after.extend(parent.after.clone());
+            self.before = BasicBlock(
+                parent
+                    .before
+                    .0
+                    .iter()
+                    .chain(self.before.0.iter())
+                    .cloned()
+                    .collect(),
+            );
+            self.after.0.extend(parent.after.0.clone());
         }
 
         let describe_blocks = self
@@ -57,7 +61,20 @@ impl Generate for Describe {
 
 impl Generate for Test {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        inherit_props(&mut self.properties, parent);
+        self.properties.inherit(parent);
+
+        let content = if let Some(ref parent) = parent {
+            parent
+                .before
+                .0
+                .iter()
+                .chain(self.content.0.iter())
+                .chain(parent.after.0.iter())
+                .cloned()
+                .collect()
+        } else {
+            self.content.0
+        };
 
         let BlockProperties {
             attributes,
@@ -65,18 +82,6 @@ impl Generate for Test {
             ident,
             return_type,
         } = self.properties;
-
-        let content = if let Some(ref parent) = parent {
-            parent
-                .before
-                .iter()
-                .chain(self.content.iter())
-                .chain(parent.after.iter())
-                .cloned()
-                .collect()
-        } else {
-            self.content
-        };
 
         let (attr_tokens, async_token) = if is_async {
             (quote!(#(#attributes)*), Some(quote!(async)))
@@ -108,22 +113,24 @@ impl Generate for Test {
     }
 }
 
-fn inherit_props(properties: &mut BlockProperties, parent: Option<&Describe>) {
-    if let Some(ref parent) = parent {
-        properties.attributes = parent
-            .properties
-            .attributes
-            .iter()
-            .chain(properties.attributes.iter())
-            .cloned()
-            .collect();
+impl BlockProperties {
+    fn inherit(&mut self, parent: Option<&Describe>) {
+        if let Some(ref parent) = parent {
+            self.attributes = parent
+                .properties
+                .attributes
+                .iter()
+                .chain(self.attributes.iter())
+                .cloned()
+                .collect();
 
-        if parent.properties.is_async {
-            properties.is_async = true;
-        }
+            if parent.properties.is_async {
+                self.is_async = true;
+            }
 
-        if let Some(ref return_type) = &parent.properties.return_type {
-            properties.return_type = Some(return_type.clone());
+            if let Some(ref return_type) = &parent.properties.return_type {
+                self.return_type = Some(return_type.clone());
+            }
         }
     }
 }
