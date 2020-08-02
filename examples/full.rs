@@ -5,13 +5,16 @@ fn is_4() -> u8 {
 }
 
 demonstrate! {
-    it is_root {
-        assert!(true)
-    }
-
     describe module {
+        use super::is_4;
+
         before {
             let four = 4;
+        }
+
+        #[should_panic]
+        it can_fail {
+            assert!(four != 4)
         }
 
         test is_returnable -> Result<(), &'static str> {
@@ -34,10 +37,9 @@ demonstrate! {
                 assert_eq!(four, add_task.await)
             }
         }
+    }
 
-        #[should_panic]
-        it can_fail {
-            assert!(four != 4)
-        }
+    it is_root {
+        assert!(true)
     }
 }

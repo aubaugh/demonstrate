@@ -1,5 +1,5 @@
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{braced, Attribute, Ident, Stmt, Token, Type};
+use syn::{braced, Attribute, Ident, Stmt, Token, Type, Path};
 
 mod keyword {
     use syn::custom_keyword;
@@ -56,6 +56,7 @@ impl Parse for DescribeBlock {
 #[derive(Clone)]
 pub(crate) struct Describe {
     pub(crate) properties: BlockProperties,
+    pub(crate) uses: Vec<Path>,
     pub(crate) before: Vec<Stmt>,
     pub(crate) after: Vec<Stmt>,
     pub(crate) blocks: Vec<Block>,
@@ -122,11 +123,17 @@ impl Parse for Block {
                 content: content.call(syn::Block::parse_within)?,
             }))
         } else {
+            let mut uses = Vec::new();
             let mut before = Vec::new();
             let mut after = Vec::new();
             let mut blocks = Vec::new();
 
             while !content.is_empty() {
+                while content.parse::<Option<Token![use]>>()?.is_some() {
+                    uses.push(content.call(Path::parse_mod_style)?);
+                    content.parse::<Token![;]>()?;
+                }
+
                 let block = content.parse::<DescribeBlock>()?;
                 match block {
                     DescribeBlock::Before(block) => {
@@ -151,6 +158,7 @@ impl Parse for Block {
 
             Ok(Block::Describe(Describe {
                 properties,
+                uses,
                 before,
                 after,
                 blocks,

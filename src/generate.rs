@@ -21,6 +21,11 @@ impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
         inherit_props(&mut self.properties, parent);
 
+        let uses = self.uses
+            .iter()
+            .map(|path| quote!(use #path;))
+            .collect::<TokenStream>();
+
         if let Some(ref parent) = parent {
             self.before = parent
                 .before
@@ -42,7 +47,7 @@ impl Generate for Describe {
         quote!(
             #[cfg(test)]
             mod #ident {
-                use super::*;
+                #uses
 
                 #describe_blocks
             }
