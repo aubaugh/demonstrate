@@ -28,6 +28,7 @@ mod generate;
 /// }
 /// ```
 ///
+/// <br />
 /// `it`/`test` blocks define a unit test.
 /// ```
 /// # use demonstrate::demonstrate;
@@ -50,6 +51,7 @@ mod generate;
 /// }
 /// ```
 ///
+/// <br />
 /// `before` and `after` blocks prevent shared starting and ending sequences of code from being
 /// written for each test within a the `describe`/`context` block it is contained in and each
 /// nested `describe`/`context` block.
@@ -81,7 +83,34 @@ mod generate;
 ///     }
 /// }
 /// ```
+/// This is generated into:
+/// ```
+/// #[cfg(test)]
+/// mod tests {
+///     #[test]
+///     fn one() {
+///         let one = 1;
+///         assert_eq!(one, 1)
+///     }
 ///
+///     #[test]
+///     fn zero() {
+///         let one = 1;
+///         assert_eq!(one - 1, 1)
+///     }
+///
+///     mod nested {
+///         #[test]
+///         fn two() {
+///             let one = 1;
+///             let two = 2;
+///             assert_eq!(one + 1, two)
+///         }
+///     }
+/// }
+/// ```
+///
+/// <br />
 /// Outer attributes, returning result types, and async tokens are all valid for `it`/`test` blocks, and can
 /// be applied to `describe`/`context` blocks as well which will affect all descendant tests.
 /// ```
