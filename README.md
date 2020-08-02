@@ -1,4 +1,4 @@
-Dynamic Testing Framework
+Declarative Testing Framework
 ===========================
 
 [<img alt="github" src="https://img.shields.io/badge/github-austinsheep/demonstrate-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/austinsheep/demonstrate)
