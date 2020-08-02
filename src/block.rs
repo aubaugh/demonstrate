@@ -1,5 +1,5 @@
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{braced, Attribute, Ident, Stmt, Token, Type};
+use syn::{braced, Attribute, Ident, Path, Stmt, Token, Type};
 
 mod keyword {
     use syn::custom_keyword;
@@ -12,43 +12,40 @@ mod keyword {
     custom_keyword!(test);
 }
 
-pub(crate) struct Root(Vec<Block>);
+pub(crate) struct Root(Vec<Describe>);
 
 impl Parse for Root {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut blocks = Vec::new();
 
         while !input.is_empty() {
-            blocks.push(input.parse::<Block>()?);
+            blocks.push(input.parse::<Describe>()?);
         }
 
         Ok(Root(blocks))
     }
 }
 
-enum DescribeBlock {
-    Regular(Block),
-    Before(Vec<Stmt>),
-    After(Vec<Stmt>),
+#[derive(Clone)]
+pub(crate) enum Block {
+    Describe(Describe),
+    Test(Test),
 }
 
-impl Parse for DescribeBlock {
+impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-        if input.parse::<Option<keyword::before>>()?.is_some() {
-            braced!(content in input);
+        let fork = input.fork();
+        let _attibutes = fork.call(Attribute::parse_outer)?;
 
-            Ok(DescribeBlock::Before(
-                content.call(syn::Block::parse_within)?,
-            ))
-        } else if input.parse::<Option<keyword::after>>()?.is_some() {
-            braced!(content in input);
+        let _async_token = fork.parse::<Option<Token![async]>>()?;
 
-            Ok(DescribeBlock::After(
-                content.call(syn::Block::parse_within)?,
-            ))
+        let lookahead = fork.lookahead1();
+        if lookahead.peek(keyword::it) || lookahead.peek(keyword::test) {
+            Ok(Block::Test(input.parse::<Test>()?))
+        } else if lookahead.peek(keyword::describe) || lookahead.peek(keyword::context) {
+            Ok(Block::Describe(input.parse::<Describe>()?))
         } else {
-            Ok(DescribeBlock::Regular(input.parse::<Block>()?))
+            Err(lookahead.error())
         }
     }
 }
@@ -56,15 +53,105 @@ impl Parse for DescribeBlock {
 #[derive(Clone)]
 pub(crate) struct Describe {
     pub(crate) properties: BlockProperties,
-    pub(crate) before: Vec<Stmt>,
-    pub(crate) after: Vec<Stmt>,
+    pub(crate) uses: Vec<Path>,
+    pub(crate) before: BasicBlock,
+    pub(crate) after: BasicBlock,
     pub(crate) blocks: Vec<Block>,
 }
 
+impl Parse for Describe {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let properties = input.parse::<BlockProperties>()?;
+
+        let content;
+        braced!(content in input);
+        let mut uses = Vec::new();
+        let mut before = BasicBlock(Vec::new());
+        let mut after = BasicBlock(Vec::new());
+        let mut blocks = Vec::new();
+
+        while !content.is_empty() {
+            while content.parse::<Option<Token![use]>>()?.is_some() {
+                uses.push(content.call(Path::parse_mod_style)?);
+                content.parse::<Token![;]>()?;
+            }
+
+            let block = content.parse::<DescribeBlock>()?;
+            match block {
+                DescribeBlock::Before(BasicBlock(block)) => {
+                    if before.0.is_empty() {
+                        before = BasicBlock(block);
+                    } else {
+                        return Err(
+                            content.error("Only one `before` statement per describe/context block")
+                        );
+                    }
+                }
+                DescribeBlock::After(BasicBlock(block)) => {
+                    if after.0.is_empty() {
+                        after = BasicBlock(block);
+                    } else {
+                        return Err(
+                            content.error("Only one `after` statement per describe/context block")
+                        );
+                    }
+                }
+                DescribeBlock::Regular(block) => blocks.push(block),
+            }
+        }
+
+        Ok(Describe {
+            properties,
+            uses,
+            before,
+            after,
+            blocks,
+        })
+    }
+}
+
+enum DescribeBlock {
+    Regular(Block),
+    Before(BasicBlock),
+    After(BasicBlock),
+}
+
+impl Parse for DescribeBlock {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.parse::<Option<keyword::before>>()?.is_some() {
+            Ok(DescribeBlock::Before(input.parse::<BasicBlock>()?))
+        } else if input.parse::<Option<keyword::after>>()?.is_some() {
+            Ok(DescribeBlock::After(input.parse::<BasicBlock>()?))
+        } else {
+            Ok(DescribeBlock::Regular(input.parse::<Block>()?))
+        }
+    }
+}
+
 #[derive(Clone)]
-pub(crate) enum Block {
-    Describe(Describe),
-    Test(Test),
+pub(crate) struct Test {
+    pub(crate) properties: BlockProperties,
+    pub(crate) content: BasicBlock,
+}
+
+impl Parse for Test {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Test {
+            properties: input.parse::<BlockProperties>()?,
+            content: input.parse::<BasicBlock>()?,
+        })
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct BasicBlock(pub(crate) Vec<Stmt>);
+
+impl Parse for BasicBlock {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        braced!(content in input);
+        Ok(BasicBlock(content.call(syn::Block::parse_within)?))
+    }
 }
 
 #[derive(Clone)]
@@ -75,29 +162,13 @@ pub(crate) struct BlockProperties {
     pub(crate) return_type: Option<Type>,
 }
 
-#[derive(Clone)]
-pub(crate) struct Test {
-    pub(crate) properties: BlockProperties,
-    pub(crate) content: Vec<Stmt>,
-}
-
-impl Parse for Block {
+impl Parse for BlockProperties {
     fn parse(input: ParseStream) -> Result<Self> {
         let attributes = input.call(Attribute::parse_outer)?;
 
         let is_async = input.parse::<Option<Token![async]>>()?.is_some();
 
-        let is_test = if input.parse::<Option<keyword::test>>()?.is_some()
-            || input.parse::<Option<keyword::it>>()?.is_some()
-        {
-            true
-        } else if input.parse::<Option<keyword::describe>>()?.is_some()
-            || input.parse::<Option<keyword::context>>()?.is_some()
-        {
-            false
-        } else {
-            return Err(input.error("Unknown block type"));
-        };
+        let _block_type = input.parse::<Ident>()?;
 
         let ident = input.parse::<Ident>()?;
 
@@ -107,54 +178,11 @@ impl Parse for Block {
             None
         };
 
-        let properties = BlockProperties {
+        Ok(BlockProperties {
             attributes,
             is_async,
             ident,
             return_type,
-        };
-
-        let content;
-        braced!(content in input);
-        if is_test {
-            Ok(Block::Test(Test {
-                properties,
-                content: content.call(syn::Block::parse_within)?,
-            }))
-        } else {
-            let mut before = Vec::new();
-            let mut after = Vec::new();
-            let mut blocks = Vec::new();
-
-            while !content.is_empty() {
-                let block = content.parse::<DescribeBlock>()?;
-                match block {
-                    DescribeBlock::Before(block) => {
-                        if before.is_empty() {
-                            before = block;
-                        } else {
-                            return Err(content
-                                .error("Only one `before` statement per describe/context scope"));
-                        }
-                    }
-                    DescribeBlock::After(block) => {
-                        if after.is_empty() {
-                            after = block;
-                        } else {
-                            return Err(content
-                                .error("Only one `after` statement per describe/context scope"));
-                        }
-                    }
-                    DescribeBlock::Regular(block) => blocks.push(block),
-                }
-            }
-
-            Ok(Block::Describe(Describe {
-                properties,
-                before,
-                after,
-                blocks,
-            }))
-        }
+        })
     }
 }

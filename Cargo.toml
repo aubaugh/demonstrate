@@ -3,7 +3,7 @@ name = "demonstrate"
 description = "Declarative testing framework"
 repository = "https://github.com/austinsheep/demonstrate"
 categories = ["development-tools::testing"]
-version = "0.2.1"
+version = "0.2.4-alpha.0"
 authors = ["Austin Baugh <austinsbaugh@gmail.com>"]
 documentation = "https://docs.rs/demonstrate"
 edition = "2018"
@@ -11,13 +11,13 @@ license = "MIT"
 readme = "README.md"
 
 [dev-dependencies]
-async-attributes = "1.1.1"
-async-std = "1.6.2"
+async-attributes = "1.1"
+async-std = "1.6"
 
 [dependencies]
-proc-macro2 = "1.0.19"
-quote = "1.0.7"
-syn = { version = "1.0.35", features = ["full"] }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["full"] }
 
 [lib]
 proc_macro = true
