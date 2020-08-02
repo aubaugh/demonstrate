@@ -34,16 +34,18 @@ pub(crate) enum Block {
 
 impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
-        let start = input.fork();
-        let _attibutes = input.call(Attribute::parse_outer)?;
+        let fork = input.fork();
+        let _attibutes = fork.call(Attribute::parse_outer)?;
 
-        let _async_token = input.parse::<Option<Token![async]>>()?;
+        let _async_token = fork.parse::<Option<Token![async]>>()?;
 
-        let lookahead = input.lookahead1();
-        if lookahead.peek(keyword::it) || lookahead.peek(keyword::test) {
-            Ok(Block::Test(start.parse::<Test>()?))
-        } else if lookahead.peek(keyword::describe) || lookahead.peek(keyword::context) {
-            Ok(Block::Describe(start.parse::<Describe>()?))
+        let lookahead = fork.lookahead1();
+        if lookahead.peek(keyword::it)
+            || lookahead.peek(keyword::test) {
+            Ok(Block::Test(input.parse::<Test>()?))
+        } else if lookahead.peek(keyword::describe)
+            || lookahead.peek(keyword::context) {
+            Ok(Block::Describe(input.parse::<Describe>()?))
         } else {
             Err(lookahead.error())
         }
