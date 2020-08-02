@@ -62,10 +62,6 @@ demonstrate! {
             }
         }
     }
-
-    it is_root {
-        assert!(true)
-    }
 }
 ```
 
