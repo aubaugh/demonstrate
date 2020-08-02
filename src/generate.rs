@@ -17,6 +17,15 @@ impl Generate for Root {
     }
 }
 
+impl Generate for Block {
+    fn generate(self, parent: Option<&Describe>) -> TokenStream {
+        match self {
+            Block::Test(test) => test.generate(parent),
+            Block::Describe(describe) => describe.generate(parent),
+        }
+    }
+}
+
 impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
         self.properties.inherit(parent);
@@ -131,15 +140,6 @@ impl BlockProperties {
             if let Some(ref return_type) = &parent.properties.return_type {
                 self.return_type = Some(return_type.clone());
             }
-        }
-    }
-}
-
-impl Generate for Block {
-    fn generate(self, parent: Option<&Describe>) -> TokenStream {
-        match self {
-            Block::Test(test) => test.generate(parent),
-            Block::Describe(describe) => describe.generate(parent),
         }
     }
 }

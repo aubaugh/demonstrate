@@ -40,11 +40,9 @@ impl Parse for Block {
         let _async_token = fork.parse::<Option<Token![async]>>()?;
 
         let lookahead = fork.lookahead1();
-        if lookahead.peek(keyword::it)
-            || lookahead.peek(keyword::test) {
+        if lookahead.peek(keyword::it) || lookahead.peek(keyword::test) {
             Ok(Block::Test(input.parse::<Test>()?))
-        } else if lookahead.peek(keyword::describe)
-            || lookahead.peek(keyword::context) {
+        } else if lookahead.peek(keyword::describe) || lookahead.peek(keyword::context) {
             Ok(Block::Describe(input.parse::<Describe>()?))
         } else {
             Err(lookahead.error())
@@ -85,7 +83,7 @@ impl Parse for Describe {
                         before = BasicBlock(block);
                     } else {
                         return Err(
-                            content.error("Only one `before` statement per describe/context scope")
+                            content.error("Only one `before` statement per describe/context block")
                         );
                     }
                 }
@@ -94,7 +92,7 @@ impl Parse for Describe {
                         after = BasicBlock(block);
                     } else {
                         return Err(
-                            content.error("Only one `after` statement per describe/context scope")
+                            content.error("Only one `after` statement per describe/context block")
                         );
                     }
                 }
