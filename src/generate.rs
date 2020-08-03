@@ -1,11 +1,16 @@
+//! Defines the code translations for the various macro components
+
 use crate::block::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+/// Trait and respective function for generating the corresponding code translations
 pub(crate) trait Generate {
     fn generate(self, parent: Option<&Describe>) -> TokenStream;
 }
 
+/// Generates the root describe blocks within the macro, adding the `#[cfg(test)]` outer attribute
+/// to each
 impl Generate for Root {
     fn generate(self, _parent: Option<&Describe>) -> TokenStream {
         let Self(blocks) = self;
@@ -23,6 +28,7 @@ impl Generate for Root {
     }
 }
 
+/// Determines the respective generate function to call for each block type
 impl Generate for Block {
     fn generate(self, parent: Option<&Describe>) -> TokenStream {
         match self {
@@ -32,12 +38,15 @@ impl Generate for Block {
     }
 }
 
+/// Generates a `mod` block with inherited block properties, inherited `before` and `after` code
+/// sequences, and contained `use` paths and subblocks
 impl Generate for Describe {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        self.properties.inherit(parent);
-
         if let Some(ref parent) = parent {
+            self.properties.inherit(parent);
+
             if let Some(ref parent_before) = &parent.before {
+                // Prepend parent's `before` code sequence
                 let before = if let Some(self_before) = self.before {
                     parent_before
                         .0
@@ -53,6 +62,7 @@ impl Generate for Describe {
             }
 
             if let Some(ref parent_after) = &parent.after {
+                // Append parent's `after` code sequence
                 if let Some(ref mut self_after) = &mut self.after {
                     self_after.0.extend(parent_after.0.clone());
                 } else {
@@ -61,20 +71,19 @@ impl Generate for Describe {
             }
         }
 
+        // Generate corresponding `use` statements
         let uses = self
             .uses
             .iter()
             .map(|path| quote!(use #path;))
             .collect::<TokenStream>();
-
+        // Generate corresponding subblocks
         let blocks = self
             .blocks
             .iter()
             .map(|block| block.clone().generate(Some(&self)))
             .collect::<TokenStream>();
-
         let ident = self.properties.ident;
-
         quote!(
             mod #ident {
                 #uses
@@ -85,24 +94,27 @@ impl Generate for Describe {
     }
 }
 
+/// Generates a unit test with inherited block properties and inherited `before`/`after` code
+/// sequences
 impl Generate for Test {
     fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        self.properties.inherit(parent);
-
         let content = if let Some(ref parent) = parent {
+            self.properties.inherit(parent);
+
+            // Prepend parent's `before` code sequence
             let mut content = if let Some(ref parent_before) = &parent.before {
                 parent_before.0.clone()
             } else {
                 Vec::new()
             };
-
+            // Add test's unique code sequence
+            content.extend(self.content.0);
+            // Append parent's `after` code sequence
             let parent_after = if let Some(ref parent_after) = &parent.after {
                 parent_after.0.clone()
             } else {
                 Vec::new()
             };
-
-            content.extend(self.content.0);
             content.extend(parent_after);
             content
         } else {
@@ -116,6 +128,7 @@ impl Generate for Test {
             return_type,
         } = self.properties;
 
+        // Generate the outer attributes and optional `async` token for this test
         let (attr_tokens, async_token) = if is_async {
             (quote!(#(#attributes)*), Some(quote!(async)))
         } else {
@@ -128,6 +141,7 @@ impl Generate for Test {
             )
         };
 
+        // Generate the test with or without a return type
         if let Some(return_type) = return_type {
             quote!(
                 #attr_tokens
@@ -147,23 +161,25 @@ impl Generate for Test {
 }
 
 impl BlockProperties {
-    fn inherit(&mut self, parent: Option<&Describe>) {
-        if let Some(ref parent) = parent {
-            self.attributes = parent
-                .properties
-                .attributes
-                .iter()
-                .chain(self.attributes.iter())
-                .cloned()
-                .collect();
+    /// Inherits the properties of the parent Describe block
+    fn inherit(&mut self, parent: &Describe) {
+        // Prepend parent's attributes
+        self.attributes = parent
+            .properties
+            .attributes
+            .iter()
+            .chain(self.attributes.iter())
+            .cloned()
+            .collect();
 
-            if parent.properties.is_async {
-                self.is_async = true;
-            }
+        // If parent is async, so is self
+        if parent.properties.is_async {
+            self.is_async = true;
+        }
 
-            if let Some(ref return_type) = &parent.properties.return_type {
-                self.return_type = Some(return_type.clone());
-            }
+        // If parent has a return type, replace self's optional return type with it
+        if let Some(ref return_type) = &parent.properties.return_type {
+            self.return_type = Some(return_type.clone());
         }
     }
 }

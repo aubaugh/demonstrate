@@ -12,9 +12,11 @@ mod keyword {
 
     custom_keyword!(after);
 
+    // Are aliases for eachother:
     custom_keyword!(describe);
     custom_keyword!(context);
 
+    // Are aliases for eachother:
     custom_keyword!(it);
     custom_keyword!(test);
 }
@@ -25,7 +27,6 @@ pub(crate) struct Root(Vec<Describe>);
 impl Parse for Root {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut blocks = Vec::new();
-
         while !input.is_empty() {
             blocks.push(input.parse::<Describe>()?);
         }
@@ -43,9 +44,11 @@ pub(crate) enum Block {
 
 impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
+        // Create forked stream for determining block type, passing the original input stream to
+        // the block's respective parse function
         let fork = input.fork();
-        let _attibutes = fork.call(Attribute::parse_outer)?;
 
+        let _attibutes = fork.call(Attribute::parse_outer)?;
         let _async_token = fork.parse::<Option<Token![async]>>()?;
 
         let lookahead = fork.lookahead1();
@@ -83,6 +86,7 @@ impl Parse for Describe {
         // Get contents
         let content;
         braced!(content in input);
+
         let mut uses = Vec::new();
         let mut before = None;
         let mut after = None;
@@ -176,6 +180,7 @@ impl Parse for BasicBlock {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
         braced!(content in input);
+
         Ok(BasicBlock(content.call(syn::Block::parse_within)?))
     }
 }
@@ -196,13 +201,9 @@ pub(crate) struct BlockProperties {
 impl Parse for BlockProperties {
     fn parse(input: ParseStream) -> Result<Self> {
         let attributes = input.call(Attribute::parse_outer)?;
-
         let is_async = input.parse::<Option<Token![async]>>()?.is_some();
-
         let _block_type = input.parse::<Ident>()?;
-
         let ident = input.parse::<Ident>()?;
-
         let return_type = if input.parse::<Option<Token![->]>>()?.is_some() {
             Some(input.parse::<Type>()?)
         } else {
