@@ -20,10 +20,10 @@ impl Generate for Root {
             .iter()
             .map(|block| {
                 let root_block = block.clone().generate(None);
-                quote!(
+                quote! {
                     #[cfg(test)]
                     #root_block
-                )
+                }
             })
             .collect::<TokenStream>()
     }
@@ -60,13 +60,13 @@ impl Generate for Describe {
             .map(|block| block.clone().generate(Some(&self)))
             .collect::<TokenStream>();
         let ident = self.properties.ident;
-        quote!(
+        quote! {
             mod #ident {
                 #uses
 
                 #blocks
             }
-        )
+        }
     }
 }
 
@@ -91,29 +91,29 @@ impl Generate for Test {
             (quote!(#(#attributes)*), Some(quote!(async)))
         } else {
             (
-                quote!(
+                quote! {
                     #[test]
                     #(#attributes)*
-                ),
+                },
                 None,
             )
         };
 
         // Generate the test with or without a return type
         if let Some(return_type) = return_type {
-            quote!(
+            quote! {
                 #attr_tokens
                 #async_token fn #ident() -> #return_type {
                     #(#content)*
                 }
-            )
+            }
         } else {
-            quote!(
+            quote! {
                 #attr_tokens
                 #async_token fn #ident() {
                     #(#content)*
                 }
-            )
+            }
         }
     }
 }
