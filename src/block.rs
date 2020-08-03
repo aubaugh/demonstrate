@@ -1,17 +1,25 @@
+//! Defines the various blocks used by the `demonstrate!` macro and their corresponding `Parse`
+//! implementations.
+
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{braced, Attribute, Ident, Path, Stmt, Token, Type};
 
+/// Custom keywords used for the new blocks available in the `demonstrate!` macro
 mod keyword {
     use syn::custom_keyword;
 
     custom_keyword!(before);
+
     custom_keyword!(after);
-    custom_keyword!(context);
+
     custom_keyword!(describe);
+    custom_keyword!(context);
+
     custom_keyword!(it);
     custom_keyword!(test);
 }
 
+/// All the describe blocks defined in the current `demonstrate!` instance
 pub(crate) struct Root(Vec<Describe>);
 
 impl Parse for Root {
@@ -26,6 +34,7 @@ impl Parse for Root {
     }
 }
 
+/// The block types that can exist in a `describe`/`context` block with `BlockProperties`
 #[derive(Clone)]
 pub(crate) enum Block {
     Describe(Describe),
@@ -50,24 +59,33 @@ impl Parse for Block {
     }
 }
 
+/// The `describe`/`context` block type
 #[derive(Clone)]
 pub(crate) struct Describe {
+    /// The properties that will be passed to all descending tests
     pub(crate) properties: BlockProperties,
+    /// The paths declared with `use` tokens within this block instance
     pub(crate) uses: Vec<Path>,
-    pub(crate) before: BasicBlock,
-    pub(crate) after: BasicBlock,
+    /// The `before` block for this block instance
+    pub(crate) before: Option<BasicBlock>,
+    /// The `after` block for this block instance
+    pub(crate) after: Option<BasicBlock>,
+    /// The nested `describe`/`context` blocks and contained `it`/`test` blocks for this block
+    /// instance
     pub(crate) blocks: Vec<Block>,
 }
 
 impl Parse for Describe {
     fn parse(input: ParseStream) -> Result<Self> {
+        // Get properties
         let properties = input.parse::<BlockProperties>()?;
 
+        // Get contents
         let content;
         braced!(content in input);
         let mut uses = Vec::new();
-        let mut before = BasicBlock(Vec::new());
-        let mut after = BasicBlock(Vec::new());
+        let mut before = None;
+        let mut after = None;
         let mut blocks = Vec::new();
 
         while !content.is_empty() {
@@ -79,8 +97,8 @@ impl Parse for Describe {
             let block = content.parse::<DescribeBlock>()?;
             match block {
                 DescribeBlock::Before(BasicBlock(block)) => {
-                    if before.0.is_empty() {
-                        before = BasicBlock(block);
+                    if before.is_none() {
+                        before = Some(BasicBlock(block));
                     } else {
                         return Err(
                             content.error("Only one `before` statement per describe/context block")
@@ -88,8 +106,8 @@ impl Parse for Describe {
                     }
                 }
                 DescribeBlock::After(BasicBlock(block)) => {
-                    if after.0.is_empty() {
-                        after = BasicBlock(block);
+                    if after.is_none() {
+                        after = Some(BasicBlock(block));
                     } else {
                         return Err(
                             content.error("Only one `after` statement per describe/context block")
@@ -110,9 +128,13 @@ impl Parse for Describe {
     }
 }
 
+/// The blocks permitted within a `describe`/`context` block
 enum DescribeBlock {
+    /// A nested Describe or Test block
     Regular(Block),
+    /// A `before` block
     Before(BasicBlock),
+    /// A `after` block
     After(BasicBlock),
 }
 
@@ -128,9 +150,12 @@ impl Parse for DescribeBlock {
     }
 }
 
+/// A `it`/`test` block
 #[derive(Clone)]
 pub(crate) struct Test {
+    /// The properties defined for this test, or inherited from parent Describe blocks
     pub(crate) properties: BlockProperties,
+    /// The unique contents of this test
     pub(crate) content: BasicBlock,
 }
 
@@ -143,6 +168,7 @@ impl Parse for Test {
     }
 }
 
+/// Simply lines of source code that were originally within curly braces
 #[derive(Clone)]
 pub(crate) struct BasicBlock(pub(crate) Vec<Stmt>);
 
@@ -154,11 +180,16 @@ impl Parse for BasicBlock {
     }
 }
 
+/// Properties that can apply to Describe and Test blocks
 #[derive(Clone)]
 pub(crate) struct BlockProperties {
+    /// Outer attributes
     pub(crate) attributes: Vec<Attribute>,
+    /// Whether this block or an ancestor was declared as `async`
     pub(crate) is_async: bool,
+    /// The unique name for this block
     pub(crate) ident: Ident,
+    /// The return type that was either defined for this block or its top-most ancestor
     pub(crate) return_type: Option<Type>,
 }
 

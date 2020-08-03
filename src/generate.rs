@@ -37,16 +37,28 @@ impl Generate for Describe {
         self.properties.inherit(parent);
 
         if let Some(ref parent) = parent {
-            self.before = BasicBlock(
-                parent
-                    .before
-                    .0
-                    .iter()
-                    .chain(self.before.0.iter())
-                    .cloned()
-                    .collect(),
-            );
-            self.after.0.extend(parent.after.0.clone());
+            if let Some(ref parent_before) = &parent.before {
+                let before = if let Some(self_before) = self.before {
+                    parent_before
+                        .0
+                        .iter()
+                        .chain(self_before.0.iter())
+                        .cloned()
+                        .collect()
+                } else {
+                    parent_before.0.clone()
+                };
+
+                self.before = Some(BasicBlock(before));
+            }
+
+            if let Some(ref parent_after) = &parent.after {
+                if let Some(ref mut self_after) = &mut self.after {
+                    self_after.0.extend(parent_after.0.clone());
+                } else {
+                    self.after = Some(parent_after.clone());
+                }
+            }
         }
 
         let uses = self
@@ -78,14 +90,21 @@ impl Generate for Test {
         self.properties.inherit(parent);
 
         let content = if let Some(ref parent) = parent {
-            parent
-                .before
-                .0
-                .iter()
-                .chain(self.content.0.iter())
-                .chain(parent.after.0.iter())
-                .cloned()
-                .collect()
+            let mut content = if let Some(ref parent_before) = &parent.before {
+                parent_before.0.clone()
+            } else {
+                Vec::new()
+            };
+
+            let parent_after = if let Some(ref parent_after) = &parent.after {
+                parent_after.0.clone()
+            } else {
+                Vec::new()
+            };
+
+            content.extend(self.content.0);
+            content.extend(parent_after);
+            content
         } else {
             self.content.0
         };
