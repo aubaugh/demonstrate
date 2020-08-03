@@ -165,7 +165,7 @@ mod inherit;
 pub fn demonstrate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = proc_macro2::TokenStream::from(input);
 
-    let root = syn::parse2::<Root>(input).unwrap();
+    let mut root = syn::parse2::<Root>(input).unwrap();
 
     proc_macro::TokenStream::from(root.generate(None))
 }

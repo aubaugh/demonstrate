@@ -22,7 +22,7 @@ mod keyword {
 }
 
 /// All the describe blocks defined in the current `demonstrate!` instance
-pub(crate) struct Root(Vec<Describe>);
+pub(crate) struct Root(pub(crate) Vec<Describe>);
 
 impl Parse for Root {
     fn parse(input: ParseStream) -> Result<Self> {

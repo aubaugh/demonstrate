@@ -7,19 +7,18 @@ use quote::quote;
 
 /// Trait and respective function for generating the corresponding code translations
 pub(crate) trait Generate {
-    fn generate(self, parent: Option<&Describe>) -> TokenStream;
+    fn generate(&mut self, parent: Option<&Describe>) -> TokenStream;
 }
 
 /// Generates the root describe blocks within the macro, adding the `#[cfg(test)]` outer attribute
 /// to each
 impl Generate for Root {
-    fn generate(self, _parent: Option<&Describe>) -> TokenStream {
-        let Self(blocks) = self;
-
-        blocks
-            .iter()
+    fn generate(&mut self, _parent: Option<&Describe>) -> TokenStream {
+        self
+            .0
+            .iter_mut()
             .map(|block| {
-                let root_block = block.clone().generate(None);
+                let root_block = block.generate(None);
                 quote! {
                     #[cfg(test)]
                     #root_block
@@ -31,7 +30,7 @@ impl Generate for Root {
 
 /// Determines the respective generate function to call for each block type
 impl Generate for Block {
-    fn generate(self, parent: Option<&Describe>) -> TokenStream {
+    fn generate(&mut self, parent: Option<&Describe>) -> TokenStream {
         match self {
             Block::Test(test) => test.generate(parent),
             Block::Describe(describe) => describe.generate(parent),
@@ -42,7 +41,7 @@ impl Generate for Block {
 /// Generates a `mod` block with inherited block properties, inherited `before` and `after` code
 /// sequences, and contained `use` paths and subblocks
 impl Generate for Describe {
-    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
+    fn generate(&mut self, parent: Option<&Describe>) -> TokenStream {
         if let Some(ref parent) = parent {
             self.inherit(parent);
         }
@@ -59,7 +58,7 @@ impl Generate for Describe {
             .iter()
             .map(|block| block.clone().generate(Some(&self)))
             .collect::<TokenStream>();
-        let ident = self.properties.ident;
+        let ident = self.properties.ident.clone();
         quote! {
             mod #ident {
                 #uses
@@ -73,7 +72,7 @@ impl Generate for Describe {
 /// Generates a unit test with inherited block properties and inherited `before`/`after` code
 /// sequences
 impl Generate for Test {
-    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
+    fn generate(&mut self, parent: Option<&Describe>) -> TokenStream {
         if let Some(ref parent) = parent {
             self.inherit(parent);
         }
@@ -83,11 +82,11 @@ impl Generate for Test {
             is_async,
             ident,
             return_type,
-        } = self.properties;
-        let content = self.content.0;
+        } = &self.properties;
+        let content = self.content.0.clone();
 
         // Generate the outer attributes and optional `async` token for this test
-        let (attr_tokens, async_token) = if is_async {
+        let (attr_tokens, async_token) = if *is_async {
             (quote!(#(#attributes)*), Some(quote!(async)))
         } else {
             (
