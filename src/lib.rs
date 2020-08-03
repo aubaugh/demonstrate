@@ -6,6 +6,7 @@ use crate::block::Root;
 use crate::generate::Generate;
 
 mod block;
+mod inherit;
 mod generate;
 
 /// Allows for tests to be defined in a declarative manner, hiding repetitive code before
