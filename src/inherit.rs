@@ -1,4 +1,4 @@
-use crate::block::{Describe, Test, BlockProperties, BasicBlock};
+use crate::block::{BasicBlock, BlockProperties, Describe, Test};
 
 pub(crate) trait Inherit {
     fn inherit(&mut self, parent: &Describe);
