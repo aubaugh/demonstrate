@@ -116,17 +116,21 @@ mod generate;
 ///
 /// Outer attributes, returning result types, and async tokens are all valid for `it`/`test` blocks, and can
 /// be applied to `describe`/`context` blocks as well which will affect all descendant tests.
+/// (Return types will only be inherited by blocks without one already defined)
 /// ```
 /// # use demonstrate::demonstrate;
 /// demonstrate! {
 ///     describe returnable -> Result<(), &'static str> {
-///         it succeeds {
+///         it is_ok { Ok(()) }
+///
+///         it does_not_fail {
+///             assert!(!false);
 ///             Ok(())
 ///         }
 ///
 ///         #[should_panic]
-///         it fails {
-///             Err("I failed!")
+///         it fails -> () {
+///             assert!(false)
 ///         }
 ///     }
 /// }
@@ -136,14 +140,20 @@ mod generate;
 /// #[cfg(test)]
 /// mod returnable {
 ///     #[test]
-///     fn succeeds() -> Result<(), &'static str> {
+///     fn is_ok() -> Result<(), &'static str> {
+///         Ok(())
+///     }
+///
+///     #[test]
+///     fn does_not_fail() -> Result<(), &'static str> {
+///         assert!(!false);
 ///         Ok(())
 ///     }
 ///
 ///     #[test]
 ///     #[should_panic]
-///     fn fails() -> Result<(), &'static str> {
-///         Err("I failed!")
+///     fn fails() -> () {
+///         assert!(false)
 ///     }
 /// }
 /// ```

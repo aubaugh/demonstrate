@@ -177,9 +177,9 @@ impl BlockProperties {
             self.is_async = true;
         }
 
-        // If parent has a return type, replace self's optional return type with it
-        if let Some(ref return_type) = &parent.properties.return_type {
-            self.return_type = Some(return_type.clone());
+        // If self doesn't have a return type, copy its parent's
+        if self.return_type.is_none() {
+            self.return_type = parent.properties.return_type.clone()
         }
     }
 }
