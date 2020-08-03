@@ -157,6 +157,9 @@ mod generate;
 ///     }
 /// }
 /// ```
+/// **Note:** If a Describe block has a return type with an `after` block containing a success
+/// result type being returned, keep in mind that a compile error will occur if a descendant test
+/// has different return type than the one appearing in that `after` block.
 #[proc_macro]
 pub fn demonstrate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = proc_macro2::TokenStream::from(input);
