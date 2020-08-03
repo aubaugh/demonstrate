@@ -8,12 +8,8 @@ impl Inherit for Describe {
     fn inherit(&mut self, parent: &Describe) {
         self.properties.inherit(parent);
         // Inherit parent's `use`s
-        self.uses = parent
-            .uses
-            .iter()
-            .chain(self.uses.iter())
-            .cloned()
-            .collect();
+        // TODO: Map each parent's use path to `super::last_segment`
+        self.uses.extend(parent.uses.clone());
 
         if let Some(ref parent_before) = &parent.before {
             // Prepend parent's `before` code sequence
@@ -47,41 +43,34 @@ impl Inherit for Test {
         self.properties.inherit(parent);
 
         // Prepend parent's `before` code sequence
-        let mut content = if let Some(ref parent_before) = &parent.before {
-            parent_before.0.clone()
-        } else {
-            Vec::new()
-        };
-        // Add test's unique code sequence
-        content.extend(self.content.0.clone());
+        if let Some(ref parent_before) = &parent.before {
+            self.content = BasicBlock(
+                parent_before
+                    .0
+                    .iter()
+                    .chain(self.content.0.iter())
+                    .cloned()
+                    .collect()
+            )
+        }
         // Append parent's `after` code sequence
-        let parent_after = if let Some(ref parent_after) = &parent.after {
-            parent_after.0.clone()
-        } else {
-            Vec::new()
-        };
-        content.extend(parent_after);
-        self.content = BasicBlock(content)
+        if let Some(ref parent_after) = &parent.after {
+            self.content.0.extend(parent_after.0.clone());
+        }
     }
 }
 
 impl Inherit for BlockProperties {
     fn inherit(&mut self, parent: &Describe) {
-        // Prepend parent's attributes
-        self.attributes = parent
-            .properties
-            .attributes
-            .iter()
-            .chain(self.attributes.iter())
-            .cloned()
-            .collect();
+        // Append parent's attributes
+        self.attributes.extend(parent.properties.attributes.clone());
 
         // If parent is async, so is self
-        if parent.properties.is_async {
+        if !self.is_async && parent.properties.is_async {
             self.is_async = true;
         }
 
-        // If self doesn't have a return type, copy its parent's
+        // If self doesn't have a return type, use its parent's
         if self.return_type.is_none() {
             self.return_type = parent.properties.return_type.clone()
         }
