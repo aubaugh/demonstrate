@@ -28,13 +28,13 @@ demonstrate! {
         #[async_attributes::test]
         async context asynchronous {
             before {
-                let add_task = async_std::task::spawn(async {
-                    1 + 1 + 1 + 1
+                let is_4_task = async_std::task::spawn(async {
+                    is_4()
                 });
             }
 
             it awaits {
-                assert_eq!(four, add_task.await)
+                assert_eq!(four, is_4_task.await)
             }
         }
     }
