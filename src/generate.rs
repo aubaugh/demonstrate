@@ -5,21 +5,20 @@ use crate::inherit::Inherit;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// Trait and respective function for generating the corresponding code translations
+/// The trait and respective function for generating the corresponding code translations
 pub(crate) trait Generate {
-    fn generate(self, parent: Option<&Describe>) -> TokenStream;
+    fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream;
 }
 
-/// Generates the root describe blocks within the macro, adding the `#[cfg(test)]` outer attribute
-/// to each
+/// Generates the root `Describe` blocks within the macro, adding the `#[cfg(test)]` outer
+/// attribute to each
 impl Generate for Root {
-    fn generate(self, _parent: Option<&Describe>) -> TokenStream {
-        let Self(blocks) = self;
-
-        blocks
-            .iter()
+    fn generate(&mut self, _parent_props: Option<&DescribeProps>) -> TokenStream {
+        self
+            .0
+            .iter_mut()
             .map(|block| {
-                let root_block = block.clone().generate(None);
+                let root_block = block.generate(None);
                 quote! {
                     #[cfg(test)]
                     #root_block
@@ -31,35 +30,38 @@ impl Generate for Root {
 
 /// Determines the respective generate function to call for each block type
 impl Generate for Block {
-    fn generate(self, parent: Option<&Describe>) -> TokenStream {
+    fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream {
         match self {
-            Block::Test(test) => test.generate(parent),
-            Block::Describe(describe) => describe.generate(parent),
+            Block::Test(test) => test.generate(parent_props),
+            Block::Describe(describe) => describe.generate(parent_props),
         }
     }
 }
 
-/// Generates a `mod` block with inherited block properties, inherited `before` and `after` code
-/// sequences, and contained `use` paths and subblocks
+/// Generates a `mod` block with inherited properties
 impl Generate for Describe {
-    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        if let Some(ref parent) = parent {
-            self.inherit(parent);
+    fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream {
+        // Inherit parent's `DescribeProps`
+        if let Some(ref parent_props) = parent_props {
+            self.inherit(parent_props);
         }
 
+        let ident = &self.properties.block_props.ident;
         // Generate corresponding `use` statements
         let uses = self
+            .properties
             .uses
             .iter()
             .map(|path| quote!(use #path;))
             .collect::<TokenStream>();
         // Generate corresponding subblocks
+        let cloned_props = self.properties.clone();
         let blocks = self
             .blocks
-            .iter()
-            .map(|block| block.clone().generate(Some(&self)))
+            .iter_mut()
+            .map(|block| block.generate(Some(&cloned_props)))
             .collect::<TokenStream>();
-        let ident = self.properties.ident;
+
         quote! {
             mod #ident {
                 #uses
@@ -70,24 +72,24 @@ impl Generate for Describe {
     }
 }
 
-/// Generates a unit test with inherited block properties and inherited `before`/`after` code
-/// sequences
+/// Generates a unit test with inherited properties
 impl Generate for Test {
-    fn generate(mut self, parent: Option<&Describe>) -> TokenStream {
-        if let Some(ref parent) = parent {
-            self.inherit(parent);
+    fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream {
+        // Inherit parent's `BlockProps` and `before`/`after` code sequences
+        if let Some(ref parent_props) = parent_props {
+            self.inherit(parent_props);
         }
 
-        let BlockProperties {
+        let BlockProps {
             attributes,
             is_async,
             ident,
             return_type,
-        } = self.properties;
-        let content = self.content.0;
+        } = &self.properties;
+        let content = &self.content.0;
 
         // Generate the outer attributes and optional `async` token for this test
-        let (attr_tokens, async_token) = if is_async {
+        let (attr_tokens, async_token) = if *is_async {
             (quote!(#(#attributes)*), Some(quote!(async)))
         } else {
             (
