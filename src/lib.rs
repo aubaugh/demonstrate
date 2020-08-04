@@ -12,6 +12,8 @@ mod inherit;
 /// Allows for tests to be defined in a declarative manner, hiding repetitive code before
 /// generation.
 ///
+/// <hr />
+///
 /// `describe`/`context` blocks define a scope such as a `mod` block and can be nested as such.
 /// ```
 /// # use demonstrate::demonstrate;
@@ -52,6 +54,47 @@ mod inherit;
 ///     }
 /// }
 /// ```
+///
+/// <hr />
+///
+/// Unlike `mod` blocks, `describe`/`context` blocks pass their `use` paths to nested `describe`/`context` blocks
+/// ```
+/// # use demonstrate::demonstrate;
+/// fn so_true() -> bool {
+///     true
+/// }
+///
+/// demonstrate! {
+///     describe outer {
+///         use super::so_true;
+///         describe inner {
+///             it uses {
+///                 assert!(so_true())
+///             }
+///         }
+///     }
+/// }
+/// ```
+/// This is generated into:
+/// ```
+/// fn so_true() -> bool {
+///     true
+/// }
+///
+/// #[cfg(test)]
+/// mod outer {
+///     use super::so_true;
+///     mod inner {
+///         use super::so_true;
+///         #[test]
+///         fn uses() {
+///             asssert!(so_true())
+///         }
+///     }
+/// }
+/// ```
+/// **Note:** If you would like to call `use` without it being inherited: call it within a seperate, nested
+/// `describe`/`context` block
 ///
 /// <hr />
 ///
@@ -158,8 +201,8 @@ mod inherit;
 ///     }
 /// }
 /// ```
-/// **Note:** If a Describe block has a return type with an `after` block containing a success
-/// result type being returned, keep in mind that a compile error will occur if a descendant test
+/// **Note:** If a `describe`/`context` block has a return type with an `after` block containing a
+/// success result type being returned, keep in mind that a compile error will occur if a descendant test
 /// has different return type than the one appearing in that `after` block.
 #[proc_macro]
 pub fn demonstrate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
