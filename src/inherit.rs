@@ -1,6 +1,6 @@
 //! Defines the inheritance behavior of `Describe` and `Test` block properties
 
-use crate::block::{BasicBlock, BlockProps, DescribeProps, Describe, Test};
+use crate::block::{BasicBlock, BlockProps, Describe, DescribeProps, Test};
 
 /// The trait and respective function for inheriting the parent `Describe` block's properties
 pub(crate) trait Inherit {
@@ -58,7 +58,7 @@ impl Inherit for Test {
                     .iter()
                     .chain(self.content.0.iter())
                     .cloned()
-                    .collect()
+                    .collect(),
             )
         }
 
@@ -72,7 +72,8 @@ impl Inherit for Test {
 impl Inherit for BlockProps {
     fn inherit(&mut self, parent_props: &DescribeProps) {
         // Append attributes from parent
-        self.attributes.extend(parent_props.block_props.attributes.clone());
+        self.attributes
+            .extend(parent_props.block_props.attributes.clone());
 
         // If parent is async, so is self
         if !self.is_async && parent_props.block_props.is_async {

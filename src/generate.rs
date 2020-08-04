@@ -14,8 +14,7 @@ pub(crate) trait Generate {
 /// attribute to each
 impl Generate for Root {
     fn generate(&mut self, _parent_props: Option<&DescribeProps>) -> TokenStream {
-        self
-            .0
+        self.0
             .iter_mut()
             .map(|block| {
                 let root_block = block.generate(None);
