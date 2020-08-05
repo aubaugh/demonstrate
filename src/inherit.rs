@@ -12,10 +12,6 @@ impl Inherit for Describe {
         // Inherit the `BlockProps` shared with `Test` blocks
         self.properties.block_props.inherit(parent_props);
 
-        // Inherit `use` paths from parent
-        // TODO: Map each parent_props's use path to `super::last_segment`
-        self.properties.uses.extend(parent_props.uses.clone());
-
         // Inherit `before` code sequences from parent
         if let Some(ref parent_props_before) = &parent_props.before {
             // Prepend parent_props's `before` code sequence

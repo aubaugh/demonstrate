@@ -85,7 +85,7 @@ mod inherit;
 /// mod outer {
 ///     use super::so_true;
 ///     mod inner {
-///         use super::so_true;
+///         use super::*;
 ///         #[test]
 ///         fn uses() {
 ///             asssert!(so_true())

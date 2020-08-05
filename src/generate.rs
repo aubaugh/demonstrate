@@ -40,19 +40,24 @@ impl Generate for Block {
 /// Generates a `mod` block with inherited properties
 impl Generate for Describe {
     fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream {
-        // Inherit parent's `DescribeProps`
-        if let Some(ref parent_props) = parent_props {
-            self.inherit(parent_props);
-        }
-
-        let ident = &self.properties.block_props.ident;
         // Generate corresponding `use` statements
-        let uses = self
+        let mut uses = self
             .properties
             .uses
             .iter()
-            .map(|path| quote!(use #path;))
+            .map(|use_tree| quote!(use #use_tree;))
             .collect::<TokenStream>();
+
+        // Inherit parent's `DescribeProps`
+        if let Some(ref parent_props) = parent_props {
+            self.inherit(parent_props);
+            if !parent_props.uses.is_empty() {
+                uses.extend(quote!(
+                    use super::*;
+                ));
+            }
+        }
+
         // Generate corresponding subblocks
         let cloned_props = self.properties.clone();
         let blocks = self
@@ -61,6 +66,7 @@ impl Generate for Describe {
             .map(|block| block.generate(Some(&cloned_props)))
             .collect::<TokenStream>();
 
+        let ident = &self.properties.block_props.ident;
         quote! {
             mod #ident {
                 #uses

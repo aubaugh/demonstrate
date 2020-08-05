@@ -2,7 +2,7 @@
 //! implementations.
 
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{braced, Attribute, Ident, Path, Stmt, Token, Type};
+use syn::{braced, Attribute, Ident, Stmt, Token, Type, UseTree};
 
 /// Custom keywords used for the new blocks available in the `demonstrate!` macro
 mod keyword {
@@ -84,7 +84,7 @@ impl Parse for Describe {
 
         while !content.is_empty() {
             while content.parse::<Option<Token![use]>>()?.is_some() {
-                uses.push(content.call(Path::parse_mod_style)?);
+                uses.push(content.parse::<UseTree>()?);
                 content.parse::<Token![;]>()?;
             }
 
@@ -130,7 +130,7 @@ pub(crate) struct DescribeProps {
     /// The properties that will be passed to all descending tests
     pub(crate) block_props: BlockProps,
     /// The paths declared with `use` tokens within this block instance
-    pub(crate) uses: Vec<Path>,
+    pub(crate) uses: Vec<UseTree>,
     /// The `before` block for this block instance
     pub(crate) before: Option<BasicBlock>,
     /// The `after` block for this block instance

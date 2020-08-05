@@ -6,7 +6,7 @@ fn is_4() -> u8 {
 
 demonstrate! {
     describe module {
-        use super::is_4;
+        use super::*;
 
         before {
             let four = 4;
