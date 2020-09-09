@@ -3,6 +3,7 @@
 
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{braced, Attribute, Ident, Stmt, Token, Type, UseTree};
+use proc_macro2::Literal;
 
 /// Custom keywords used for the new blocks available in the `demonstrate!` macro
 mod keyword {
@@ -197,7 +198,7 @@ pub(crate) struct BlockProps {
     /// Whether this block or an ancestor was declared as `async`
     pub(crate) is_async: bool,
     /// The unique name for this block
-    pub(crate) ident: Ident,
+    pub(crate) name: String,
     /// The return type that was either defined for this block or an ancestor (if one was not
     /// specified)
     pub(crate) return_type: Option<Type>,
@@ -209,7 +210,7 @@ impl Parse for BlockProps {
         let is_async = input.parse::<Option<Token![async]>>()?.is_some();
         // The block type keyword is parsed in the `Parse` implementation for `Block`
         let _block_type = input.parse::<Ident>()?;
-        let ident = input.parse::<Ident>()?;
+        let name = input.parse::<Literal>()?.to_string();
         let return_type = if input.parse::<Option<Token![->]>>()?.is_some() {
             Some(input.parse::<Type>()?)
         } else {
@@ -219,7 +220,7 @@ impl Parse for BlockProps {
         Ok(BlockProps {
             attributes,
             is_async,
-            ident,
+            name,
             return_type,
         })
     }

@@ -2,7 +2,8 @@
 
 use crate::block::*;
 use crate::inherit::Inherit;
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Ident, Span};
+use voca_rs::case::snake_case;
 use quote::quote;
 
 /// The trait and respective function for generating the corresponding code translations
@@ -66,7 +67,9 @@ impl Generate for Describe {
             .map(|block| block.generate(Some(&cloned_props)))
             .collect::<TokenStream>();
 
-        let ident = &self.properties.block_props.ident;
+        // Assign module ident based on name
+        let ident = Ident::new(&snake_case(&self.properties.block_props.name), Span::call_site());
+
         quote! {
             mod #ident {
                 #uses
@@ -88,7 +91,7 @@ impl Generate for Test {
         let BlockProps {
             attributes,
             is_async,
-            ident,
+            name,
             return_type,
         } = &self.properties;
         let content = &self.content.0;
@@ -105,6 +108,9 @@ impl Generate for Test {
                 None,
             )
         };
+
+        // Assign test ident based on name
+        let ident = Ident::new(&snake_case(&name), Span::call_site());
 
         // Generate the test with or without a return type
         if let Some(return_type) = return_type {

@@ -16,6 +16,7 @@ async-std = "1.6"
 
 [dependencies]
 proc-macro2 = "1.0"
+voca_rs="1.12"
 quote = "1.0"
 syn = { version = "1.0", features = ["full"] }
 
