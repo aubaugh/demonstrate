@@ -18,8 +18,8 @@ mod inherit;
 /// ```
 /// # use demonstrate::demonstrate;
 /// demonstrate! {
-///     describe outer {
-///         describe inner {}
+///     describe "outer" {
+///         describe "inner" {}
 ///     }
 /// }
 /// ```
@@ -37,8 +37,8 @@ mod inherit;
 /// ```
 /// # use demonstrate::demonstrate;
 /// demonstrate! {
-///     describe tests {
-///         it asserts {
+///     describe "tests" {
+///         it "asserts" {
 ///             assert!(true)
 ///         }
 ///     }
@@ -65,10 +65,10 @@ mod inherit;
 /// }
 ///
 /// demonstrate! {
-///     describe outer {
+///     describe "outer" {
 ///         use super::so_true;
-///         describe inner {
-///             it uses {
+///         describe "inner" {
+///             it "uses" {
 ///                 assert!(so_true())
 ///             }
 ///         }
@@ -104,25 +104,25 @@ mod inherit;
 /// ```
 /// # use demonstrate::demonstrate;
 /// demonstrate! {
-///     describe tests {
+///     describe "tests" {
 ///         before {
 ///             let one = 1;
 ///         }
 ///
-///         it one {
+///         it "one" {
 ///             assert_eq!(one, 1)
 ///         }
 ///
-///         it zero {
+///         it "zero" {
 ///             assert_eq!(one - 1, 0)
 ///         }
 ///
-///         describe nested {
+///         describe "nested" {
 ///             before {
 ///                 let two = 2;
 ///             }
 ///
-///             it two {
+///             it "two" {
 ///                 assert_eq!(one + 1, two)
 ///             }
 ///         }
@@ -164,16 +164,16 @@ mod inherit;
 /// ```
 /// # use demonstrate::demonstrate;
 /// demonstrate! {
-///     describe returnable -> Result<(), &'static str> {
-///         it is_ok { Ok(()) }
+///     describe "returnable" -> Result<(), &'static str> {
+///         it "is ok" { Ok(()) }
 ///
-///         it does_not_fail {
+///         it "does not fail" {
 ///             assert!(!false);
 ///             Ok(())
 ///         }
 ///
 ///         #[should_panic]
-///         it fails -> () {
+///         it "fails" -> () {
 ///             assert!(false)
 ///         }
 ///     }
