@@ -1,9 +1,9 @@
 //! Defines the various blocks used by the `demonstrate!` macro and their corresponding `Parse`
 //! implementations.
 
+use proc_macro2::Literal;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{braced, Attribute, Ident, Stmt, Token, Type, UseTree};
-use proc_macro2::Literal;
 
 /// Custom keywords used for the new blocks available in the `demonstrate!` macro
 mod keyword {

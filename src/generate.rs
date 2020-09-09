@@ -2,9 +2,9 @@
 
 use crate::block::*;
 use crate::inherit::Inherit;
-use proc_macro2::{TokenStream, Ident, Span};
-use voca_rs::case::snake_case;
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use voca_rs::case::snake_case;
 
 /// The trait and respective function for generating the corresponding code translations
 pub(crate) trait Generate {
@@ -68,7 +68,10 @@ impl Generate for Describe {
             .collect::<TokenStream>();
 
         // Assign module ident based on name
-        let ident = Ident::new(&snake_case(&self.properties.block_props.name), Span::call_site());
+        let ident = Ident::new(
+            &snake_case(&self.properties.block_props.name),
+            Span::call_site(),
+        );
 
         quote! {
             mod #ident {
