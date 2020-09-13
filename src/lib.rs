@@ -1,14 +1,5 @@
 //! Declarative testing framework
 
-extern crate proc_macro;
-
-use crate::block::Root;
-use crate::generate::Generate;
-
-mod block;
-mod generate;
-mod inherit;
-
 /// Allows for tests to be defined in a declarative manner, hiding repetitive code before
 /// generation.
 ///
@@ -204,6 +195,16 @@ mod inherit;
 /// **Note:** If a `describe`/`context` block has a return type with an `after` block containing a
 /// success result type being returned, keep in mind that a compile error will occur if a descendant test
 /// has different return type than the one appearing in that `after` block.
+
+extern crate proc_macro;
+
+use crate::block::Root;
+use crate::generate::Generate;
+
+mod block;
+mod generate;
+mod inherit;
+
 #[proc_macro]
 pub fn demonstrate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = proc_macro2::TokenStream::from(input);

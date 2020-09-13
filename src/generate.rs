@@ -52,11 +52,9 @@ impl Generate for Describe {
         // Inherit parent's `DescribeProps`
         if let Some(ref parent_props) = parent_props {
             self.inherit(parent_props);
-            if !parent_props.uses.is_empty() {
-                uses.extend(quote!(
-                    use super::*;
-                ));
-            }
+            uses.extend(quote!(
+                use super::*;
+            ));
         }
 
         // Generate corresponding subblocks
