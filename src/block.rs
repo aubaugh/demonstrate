@@ -119,7 +119,7 @@ impl Parse for Describe {
                         );
                     }
                 }
-                DescribeBlock::Regular(block) => blocks.push(block),
+                DescribeBlock::Regular(block) => blocks.push(*block),
             }
         }
 
@@ -151,7 +151,7 @@ pub(crate) struct DescribeProps {
 /// All the blocks permitted within a `Describe` block
 enum DescribeBlock {
     /// A nested `Describe` or `Test` block
-    Regular(Block),
+    Regular(Box<Block>),
     /// A `before {}` block
     Before(BasicBlock),
     /// An `after {}` block
@@ -165,7 +165,7 @@ impl Parse for DescribeBlock {
         } else if input.parse::<Option<keyword::after>>()?.is_some() {
             Ok(DescribeBlock::After(input.parse::<BasicBlock>()?))
         } else {
-            Ok(DescribeBlock::Regular(input.parse::<Block>()?))
+            Ok(DescribeBlock::Regular(Box::new(input.parse::<Block>()?)))
         }
     }
 }

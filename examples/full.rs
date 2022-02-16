@@ -39,3 +39,7 @@ demonstrate! {
         }
     }
 }
+
+fn main() {
+    println!("is {} four?", is_4())
+}

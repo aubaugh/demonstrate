@@ -50,7 +50,7 @@ impl Generate for Describe {
             .collect::<TokenStream>();
 
         // Inherit parent's `DescribeProps`
-        if let Some(ref parent_props) = parent_props {
+        if let Some(parent_props) = parent_props {
             self.inherit(parent_props);
             uses.extend(quote!(
                 use super::*;
@@ -85,7 +85,7 @@ impl Generate for Describe {
 impl Generate for Test {
     fn generate(&mut self, parent_props: Option<&DescribeProps>) -> TokenStream {
         // Inherit parent's `BlockProps` and `before`/`after` code sequences
-        if let Some(ref parent_props) = parent_props {
+        if let Some(parent_props) = parent_props {
             self.inherit(parent_props);
         }
 
@@ -111,7 +111,7 @@ impl Generate for Test {
         };
 
         // Assign test ident based on name
-        let ident = Ident::new(&snake_case(&name), Span::call_site());
+        let ident = Ident::new(&snake_case(name), Span::call_site());
 
         // Generate the test with or without a return type
         if let Some(return_type) = return_type {
