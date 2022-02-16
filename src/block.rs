@@ -16,10 +16,13 @@ mod keyword {
     // Are aliases for eachother:
     custom_keyword!(describe);
     custom_keyword!(context);
+    custom_keyword!(given);
+    custom_keyword!(when);
 
     // Are aliases for eachother:
     custom_keyword!(it);
     custom_keyword!(test);
+    custom_keyword!(then);
 }
 
 /// All the root `Describe` blocks defined in the current `demonstrate!` instance
@@ -53,9 +56,16 @@ impl Parse for Block {
         let _async_token = fork.parse::<Option<Token![async]>>()?;
 
         let lookahead = fork.lookahead1();
-        if lookahead.peek(keyword::it) || lookahead.peek(keyword::test) {
+        if lookahead.peek(keyword::it)
+            || lookahead.peek(keyword::test)
+            || lookahead.peek(keyword::then)
+        {
             Ok(Block::Test(input.parse::<Test>()?))
-        } else if lookahead.peek(keyword::describe) || lookahead.peek(keyword::context) {
+        } else if lookahead.peek(keyword::describe)
+            || lookahead.peek(keyword::context)
+            || lookahead.peek(keyword::given)
+            || lookahead.peek(keyword::when)
+        {
             Ok(Block::Describe(input.parse::<Describe>()?))
         } else {
             Err(lookahead.error())

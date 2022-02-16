@@ -14,9 +14,9 @@ The following new block definitions are utilized by Demonstrate:
 
 - **`before`/`after`** — A block of source code that will be included at the start or end of each test respectively in the current and nested `describe`/`context` blocks.
 
-- **`describe`/`context`** — `describe` and `context` are aliases for eachother. Specifies a new scope of tests which can contain a `before` and/or `after` block, nested `describe`/`context` blocks, and `it`/`test` blocks. These translate to Rust `mod` blocks, but also allow for shared test properties to be defined such as tests having outer attributes, being `async`, and having `Return<()>` types.
+- **`describe`/`context`/`given`/`when`** — `describe`, `context`, `given`, `when` are aliases for eachother. Specifies a new scope of tests which can contain a `before` and/or `after` block, nested `describe`/`context` blocks, and `it`/`test` blocks. These translate to Rust `mod` blocks, but also allow for shared test properties to be defined such as tests having outer attributes, being `async`, and having `Return<()>` types.
 
-- **`it`/`test`** — `it` and `test` are aliases for eachother. Represents one test that translate to a Rust unit test.
+- **`it`/`test`/`then`** — `it`, `test` and `then` are aliases for eachother. Represents one test that translate to a Rust unit test.
 
 <br />
 
